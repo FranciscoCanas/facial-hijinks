@@ -25,12 +25,14 @@ def find_bounds(img_file):
 
 def main(path):
     files = [f for f in listdir(path) if isfile(join(path,f)) ]
+    if not files:
+        print 'Nothing to be done.'
     for file in files:
         if '.jpg' in file or '.png' in file:
             find_bounds(file)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser('Add face bounding boxes to a folder full of jpg or png files: saves the modified images as boxed.*')
     parser.add_argument('--dir', default='.', help='Folder full of .jpg or .png files.')
     args = parser.parse_args()
     main(args.dir)
