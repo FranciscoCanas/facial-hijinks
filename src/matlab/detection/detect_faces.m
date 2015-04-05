@@ -1,18 +1,17 @@
 % Add the voc-dpm repo to path:
 addpath('./voc-dpm');
-hello
-
+startup
 % This script will detect faces in a set of images
 % The minimum face detection size is 36 pixels,
 % the maximum size is the full image.
 
-images_folder_path = '/u/eleni/doppia/data/frames/scene_4/';
+%images_folder_path = '/u/eleni/doppia/data/frames/scene_4/';
 results_folder_path = '~/face_detection_results/frames/scene_4/';
+images_folder_path = '~/face_detection_results/frames/scene_4/';
 %images_folder_path = '/u/francisco/412/proj/';
 %results_folder_path = images_folder_path;
 
 model_path = '/u/eleni/doppia/data/trained_models/face_detection/dpm_baseline.mat';
-
 
 face_model = load(model_path);
 

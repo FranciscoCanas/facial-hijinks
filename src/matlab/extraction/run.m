@@ -3,8 +3,6 @@ init;
 path='~/face_detection_results/frames/scene_4/image-035.jpeg';
 fprintf('running from cached face detections...\n');
 
-%[DETS,PTS,DESCS]=extfacedescs(opts,'047640.jpg',true);
-%[DETS,PTS,DESCS]=extfacedescs(opts,'bach.jpg',true);
 [DETS,PTS,DESCS]=extfacedescs(opts,path,true);
 
 fprintf(' DETS: %d x %d\n',size(DETS,1),size(DETS,2));
