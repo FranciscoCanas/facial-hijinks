@@ -36,21 +36,10 @@ for i=1:numel(image_names)
     % ds: (x1, y1, x2, y2, model, score) 
     [ds, bs] = process_face(image, face_model.model,  ...
                             detection_threshold, nms_threshold);
-
-    % Convert to x,y,w,h:
     ds_size = size(ds);
-
     if ds_size(1) > 0
-
-    	dsp = zeros(ds_size(1), 4);
-    %dsp(:,1:2) = ds(:,1:2);
-	dsp(:,3) = (ds(:,3) - ds(:,1)) / 2;
-	dsp(:,1) = ds(:,1) + dsp(:,3);
-	    dsp(:,2) = ds(:,2) + dsp(:,3);
-	    dsp(:,4) = ds(:,6);
+        dsp = ds(:,[1,3,2,4]);
     end
-    % compute unions:
-   
     % compute union intersections:
     %intersections = rectint(dsp, dspm);
 	

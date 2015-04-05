@@ -1,24 +1,41 @@
 init;
-path='~/face_detection_results/frames/scene_4/image-035.jpg';
-fprintf('running from cached face detections...\n');
+base_path='~/face_detection_results/frames/scene_4/'
+img = 'image-035.jpg';
 
-[DETS,PTS,DESCS]=extfacedescs(opts,path,true);
+scene = 4;
+fprintf('Extracting Features...\n');
 
-fprintf(' DETS: %d x %d\n',size(DETS,1),size(DETS,2));
-fprintf('  PTS: %d x %d x %d\n',size(PTS,1),size(PTS,2),size(PTS,3));
-fprintf('DESCS: %d x %d\n',size(DESCS,1),size(DESCS,2));
+image_names = dir(fullfile(base_path, '*.jpg'));
 
-if strcmp(computer,'PCWIN')
+F = 1960; % Current number of features in use.
+M = zeros(1,F);
 
-    pause;
-    
-    fprintf('running using face detector binary...\n');
+for i=1:numel(image_names)
+    image_name = image_names(i).name;
+    image_name;
+    image_path = fullfile(base_path, image_name);
 
-    I=imread('047640.jpg');
-    
-    [DETS,PTS,DESCS]=extfacedescs(opts,I,true);
-    
+	[DETS,PTS,DESCS]=extfacedescs(opts, image_path, false);
+
+	sz = size(DETS);
+	N = sz(2);
+
 	fprintf(' DETS: %d x %d\n',size(DETS,1),size(DETS,2));
 	fprintf('  PTS: %d x %d x %d\n',size(PTS,1),size(PTS,2),size(PTS,3));
 	fprintf('DESCS: %d x %d\n',size(DESCS,1),size(DESCS,2));
+
+	SCENE = zeros(N,1) + scene;
+	if N > 0
+		DETS=DETS';
+		DESCS=DESCS';
+		PTSX=reshape(PTS(1,:,:),[9,N])';
+		PTSY=reshape(PTS(2,:,:),[9,N])';
+		Cur_M = [SCENE DETS PTSX PTSY DESCS];
+		M = [M ; Cur_M];
+	end
 end
+
+M = M(2:end,:);
+fprintf('Size of Final Feature Matrix: %d x %d', size(M,1), size(M,2));
+fprintf('Saving to M');
+save('M', 'M', '-ascii')
