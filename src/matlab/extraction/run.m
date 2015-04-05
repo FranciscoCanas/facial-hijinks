@@ -1,6 +1,5 @@
-addpath('./CLASS');
 init;
-path='~/face_detection_results/frames/scene_4/image-035.jpeg';
+path='~/face_detection_results/frames/scene_4/image-035.jpg';
 fprintf('running from cached face detections...\n');
 
 [DETS,PTS,DESCS]=extfacedescs(opts,path,true);
