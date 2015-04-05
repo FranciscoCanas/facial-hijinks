@@ -22,7 +22,7 @@ detection_threshold = -0.5;
 % 0.3 or 0.2 are adequate for face detection.
 nms_threshold = 0.3;
 
-image_names = dir(fullfile(images_folder_path, '*.jpeg'));
+image_names = dir(fullfile(images_folder_path, '*.jpg'));
 
 
 for i=1:numel(image_names)
@@ -42,12 +42,12 @@ for i=1:numel(image_names)
 
     if ds_size(1) > 0
 
-    dsp = zeros(ds_size(1), 4);
+    	dsp = zeros(ds_size(1), 4);
     %dsp(:,1:2) = ds(:,1:2);
-    dsp(:,3) = (ds(:,3) - ds(:,1)) / 2;
-    dsp(:,1) = ds(:,1) + dsp(:,3);
-    dsp(:,2) = ds(:,2) + dsp(:,3);
-    dsp(:,4) = ds(:,6);
+	dsp(:,3) = (ds(:,3) - ds(:,1)) / 2;
+	dsp(:,1) = ds(:,1) + dsp(:,3);
+	    dsp(:,2) = ds(:,2) + dsp(:,3);
+	    dsp(:,4) = ds(:,6);
     end
     % compute unions:
    
@@ -61,7 +61,9 @@ for i=1:numel(image_names)
     file = fopen(results_path, 'w');
     fprintf(file, '%d\n', ds_size(1));
     if ds_size(1) > 0
-       fprintf(file, '%d %d %d %d\n', round(dsp));
+	for i=1:ds_size(1)
+	        fprintf(file, '%d %d %d %d\n', round(dsp(i,:)));
+	end
     end
     disp(['Created ', results_path]);
 end
