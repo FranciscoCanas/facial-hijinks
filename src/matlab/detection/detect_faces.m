@@ -16,18 +16,17 @@ model_path = '/u/eleni/doppia/data/trained_models/face_detection/dpm_baseline.ma
 face_model = load(model_path);
 
 % lower detection threshold generates more detections
-detection_threshold = -0.5; 
-%detection_threshold = 0; 
+%detection_threshold = -0.5; 
+detection_threshold = 0; 
 
 % 0.3 or 0.2 are adequate for face detection.
 nms_threshold = 0.3;
 
 image_names = dir(fullfile(images_folder_path, '*.jpg'));
 
+count = 0;
 
 for i=1:numel(image_names)
-%for i=1:5  
-
     image_name = image_names(i).name;
     image_name;
     image_path = fullfile(images_folder_path, image_name);
@@ -50,9 +49,10 @@ for i=1:numel(image_names)
     file = fopen(results_path, 'w');
     fprintf(file, '%d\n', ds_size(1));
     if ds_size(1) > 0
-	for i=1:ds_size(1)
-	        fprintf(file, '%d %d %d %d\n', round(dsp(i,:)));
-	end
+    	for i=1:ds_size(1)
+                count = count + 1;
+    	        fprintf(file, '%d %d %d %d\n', round(dsp(i,:)));
+    	end
     end
     disp(['Created ', results_path]);
 end
