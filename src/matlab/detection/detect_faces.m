@@ -37,7 +37,7 @@ for i=1:numel(image_names)
     %compute union intersections:
     %intersections = rectint(dsp, dspm);
 	
-    bimage_path = fullfile(results_folder_path, [image_name, '.jpg']);
+    bimage_path = fullfile(results_folder_path, ['bounded/', image_name]);
     results_path = fullfile(results_folder_path,[image_name, '.vj']);
 
     showsboxes_face(image, ds, bimage_path);
