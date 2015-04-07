@@ -1,7 +1,6 @@
 init;
-base_path='~/face_detection_results/frames/scene_4/'
-img = 'image-035.jpg';
-scene = 4;
+base_path='~/face_detection_results/frames/scene_1/'
+scene = 1;
 
 fprintf('Extracting Features...\n');
 

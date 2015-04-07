@@ -5,14 +5,9 @@ startup
 % The minimum face detection size is 36 pixels,
 % the maximum size is the full image.
 
-images_folder_path = '/u/eleni/doppia/data/frames/scene_4/';
-results_folder_path = '~/face_detection_results/frames/scene_4/';
-%images_folder_path = '~/face_detection_results/frames/scene_4/';
-%images_folder_path = '/u/francisco/412/proj/';
-%results_folder_path = images_folder_path;
-
+images_folder_path = '/u/eleni/doppia/data/frames/scene_1/';
+results_folder_path = '~/face_detection_results/frames/scene_1/';
 model_path = '/u/eleni/doppia/data/trained_models/face_detection/dpm_baseline.mat';
-
 face_model = load(model_path);
 
 % lower detection threshold generates more detections
@@ -39,11 +34,11 @@ for i=1:numel(image_names)
     if ds_size(1) > 0
         dsp = ds(:,[1,3,2,4]);
     end
-    % compute union intersections:
+    %compute union intersections:
     %intersections = rectint(dsp, dspm);
 	
-    bimage_path = fullfile(results_folder_path, [image_name, '.result.png']);
-    results_path = fullfile(results_folder_path,[image_name,'.vj']);
+    bimage_path = fullfile(results_folder_path, [image_name, '.jpg']);
+    results_path = fullfile(results_folder_path,[image_name, '.vj']);
 
     showsboxes_face(image, ds, bimage_path);
     file = fopen(results_path, 'w');
