@@ -12,7 +12,7 @@ face_model = load(model_path);
 
 % lower detection threshold generates more detections
 %detection_threshold = -0.5; 
-detection_threshold = 0; 
+detection_threshold = 0.0; 
 
 % 0.3 or 0.2 are adequate for face detection.
 nms_threshold = 0.3;
@@ -28,8 +28,7 @@ for i=1:numel(image_names)
     image = imread(image_path);
 
     % ds: (x1, y1, x2, y2, model, score) 
-    [ds, bs] = process_face(image, face_model.model,  ...
-                            detection_threshold, nms_threshold);
+    [ds, bs] = process_face(image, face_model.model, detection_threshold, nms_threshold);
     ds_size = size(ds);
     if ds_size(1) > 0
         dsp = ds(:,[1,3,2,4]);

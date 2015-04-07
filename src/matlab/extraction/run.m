@@ -1,10 +1,11 @@
 init;
-base_path='~/face_detection_results/frames/scene_1/'
+image_path = '/u/eleni/doppia/data/frames/scene_1/';
+base_path = '~/face_detection_results/frames/scene_1/'
 scene = 1;
 
 fprintf('Extracting Features...\n');
 
-image_names = dir(fullfile(base_path, '*.jpg'));
+image_names = dir(fullfile(image_path, '*.jpg'));
 
 F = 1961; % Current number of features in use.
 M = zeros(1,F);
@@ -12,11 +13,9 @@ frame = 1;
 
 for i=1:numel(image_names)
     image_name = image_names(i).name;
-    image_name;
-    image_path = fullfile(base_path, image_name);
+    image_path = fullfile(image_path, image_name);
     ds_path = fullfile([base_path image_name '.vj']);
     T=dlmread(ds_path);
-	
 
 	[DETS,PTS,DESCS]=extfacedescs(opts, image_path, false);
 
