@@ -12,7 +12,7 @@ scene = int(M[0, 0])
 vid_path = '/home/fran/school/csc412/proj/frames/scene_3/scene3.mp4'
 path = '/home/fran/school/csc412/proj/frames/scene_{}/'.format(scene)
 
-img_name = 'image-{}.jpg'
+img_name = 'image-%04d.jpg'
 
 classifier = GMM(n_components=4, covariance_type='diag', init_params='wc', n_iter=100)
 print 'Training'
@@ -22,11 +22,11 @@ print classifier.get_params()
 y = classifier.predict(X)
 
 preds_per_frame = {}
-for i in range(1,275):
+for i in range(0, 275):
     preds_per_frame[i] = []
 
 for i, pred in enumerate(y):
-    frame = frames[i] + 1
+    frame = frames[i]
     preds_per_frame[frame].append(i)
 
 view(path, img_name, X, y, preds_per_frame)
