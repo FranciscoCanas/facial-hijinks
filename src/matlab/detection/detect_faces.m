@@ -5,14 +5,14 @@ startup
 % The minimum face detection size is 36 pixels,
 % the maximum size is the full image.
 
-images_folder_path = '/u/eleni/doppia/data/frames/scene_1/';
-results_folder_path = '~/face_detection_results/frames/scene_1/';
+images_folder_path = '/u/eleni/doppia/data/frames/scene_2/';
+results_folder_path = '~/face_detection_results/frames/scene_2/';
 model_path = '/u/eleni/doppia/data/trained_models/face_detection/dpm_baseline.mat';
 face_model = load(model_path);
 
 % lower detection threshold generates more detections
 %detection_threshold = -0.5; 
-detection_threshold = 0.0; 
+detection_threshold = 0; 
 
 % 0.3 or 0.2 are adequate for face detection.
 nms_threshold = 0.3;
@@ -41,6 +41,7 @@ for i=1:numel(image_names)
 
     showsboxes_face(image, ds, bimage_path);
     file = fopen(results_path, 'w');
+    fprintf(' DETS in %s: %d\n', image_name, ds_size(1));
     fprintf(file, '%d\n', ds_size(1));
     if ds_size(1) > 0
     	for i=1:ds_size(1)
