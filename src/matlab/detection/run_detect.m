@@ -5,8 +5,6 @@ startup
 % The minimum face detection size is 36 pixels,
 % the maximum size is the full image.
 
-images_folder_path = '/u/eleni/doppia/data/frames/scene_2/';
-results_folder_path = '~/face_detection_results/frames/scene_2/';
 model_path = '/u/eleni/doppia/data/trained_models/face_detection/dpm_baseline.mat';
 face_model = load(model_path);
 

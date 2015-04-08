@@ -1,7 +1,4 @@
 init;
-base_path = '~/face_detection_results/frames/scene_2/'
-scene = 2;
-
 fprintf('Extracting Features...\n');
 
 image_names = dir(fullfile(base_path, '*.jpg'));
