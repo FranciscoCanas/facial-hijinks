@@ -6,6 +6,7 @@ eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
 cap = cv2.VideoCapture(0)
 
+
 def detect(img, cascade):
     for scale in [float(i)/10 for i in range(11, 25)]:
         for neighbors in range(2,5):
