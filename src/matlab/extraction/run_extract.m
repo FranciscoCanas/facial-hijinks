@@ -39,4 +39,4 @@ end
 M = M(2:end,:);
 fprintf('Size of Final Feature Matrix: %d x %d', size(M,1), size(M,2));
 fprintf('Saving to M');
-save('M', 'M', '-ascii');
+save([results_folder_path '/M.m'], 'M', '-ascii');
