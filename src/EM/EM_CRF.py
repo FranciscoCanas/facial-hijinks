@@ -8,11 +8,11 @@ eps = 1e-32
 
 def initialize(N, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None):
 
-    K = N + 1
+    K = N
 
     DESCS_size = X.shape[1] - 23 # -3 for x,y,half_width, -18 for PTS, -2 for scene_id, frame_id
 
-    if not init_mu:
+    if init_mu == None:
         mu = (np.random.random((K, DESCS_size))) # cluster means
     else:
         mu = init_mu
@@ -26,7 +26,7 @@ def initialize(N, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
 
     # assignment of names (clusters) to detections
     # (respects the scene weak label constraint)
-    if not init_y:
+    if init_y == None:
         for i in range(X.shape[0]):
             scene_id = int(X[i, 0])
             num_names = cast_counts[scene_id]
@@ -35,9 +35,11 @@ def initialize(N, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
             person_id = scene_cast[scene_id][rand_name_id]
             Y[i, person_id] = 1
     else:
-        Y[:,init_y] = 1
+        Y[:, init_y] = 1
+
 
     for i in range(X.shape[0]):
+        person_id = np.where(Y[i, :] == 1)[0][0]
         L[i, person_id] = phi_all(i, person_id, Y, X, shot, mu, C[0, :], C[1, :], C[2, :])
 
     return mu, Y, C, L
@@ -60,9 +62,9 @@ def phi_1(Y, X, C1, mu):
         _sum = C1[X[x,0]] * Y[x,0]
 
         for k in range(K):
-            d[x,k] = (dist(mu[k,:], X_descs[x,:])) * Y[x,k]
+            d[x, k] = (dist(mu[k, :], X_descs[x, :])) * Y[x, k]
 
-    _sum += np.sum(d[x,k])
+    _sum += np.sum(d[x, k])
 
     # print "phi_1 end " + str(time.time())
     return _sum
@@ -73,13 +75,13 @@ def phi_2(Y, X, S):
     print "phi_2 start " + str(time.time())
 
     for s in range(S):
-        X_c = X[X[:,0] == s]
+        X_c = X[X[:, 0] == s]
         if X_c.shape[0] == 0:
             continue
 
         F = X_c[-1, 1]
         for f in range(int(F)):
-            X_cf = X_c[X_c[:,1] == f]
+            X_cf = X_c[X_c[:, 1] == f]
             if X_cf.shape[0] == 0:
                 continue
 
@@ -107,7 +109,7 @@ def phi_3(Y, X, shot, C2, C3):
 
     _sum = 0
     for s in range(S):
-        X_c = X[X[:,0] == s]
+        X_c = X[X[:, 0] == s]
         if X_c.shape[0] == 0:
             continue
 
@@ -117,8 +119,8 @@ def phi_3(Y, X, shot, C2, C3):
             if shot[s,f]:
                 continue
 
-            dets_cur = X_c[X_c[:,1] == f]
-            dets_next = X_c[X_c[:,1] == (f+1)]
+            dets_cur = X_c[X_c[:, 1] == f]
+            dets_next = X_c[X_c[:, 1] == (f+1)]
 
             for det1 in dets_cur:
                 for det2 in dets_next:
@@ -155,8 +157,8 @@ def M_step_C2_C3(Y, X, shot):
             if shot[s,f]:
                 continue
 
-            dets_cur = X_c[X_c[:,1] == f]
-            dets_next = X_c[X_c[:,1] == (f+1)]
+            dets_cur = X_c[X_c[:, 1] == f]
+            dets_next = X_c[X_c[:, 1] == (f+1)]
 
             for det1 in dets_cur:
                 for det2 in dets_next:
@@ -178,7 +180,7 @@ def old_phi_234(Y, X, shot, C2, C3):
 
     _sum = 0
     for s in range(S):
-        X_c = X[X[:,0] == s]
+        X_c = X[X[:, 0] == s]
         if X_c.shape[0] == 0:
             continue
 
@@ -190,16 +192,16 @@ def old_phi_234(Y, X, shot, C2, C3):
                 return np.inf
 
 
-            f = X_c[d,1]
+            f = X_c[d, 1]
 
             if shot[s,f]:
                 continue
 
-            X_cf = X_c[X_c[d:,1] == f]
+            X_cf = X_c[X_c[d:, 1] == f]
             if X_cf.shape[0] == 0:
                 continue
 
-            det1 = X_c[d,:]
+            det1 = X_c[d, :]
             ind1 = np.where(X == det1)[0][0]
             label1 = np.where(Y[ind1, :] == 1)[0][0]
 
@@ -212,7 +214,7 @@ def old_phi_234(Y, X, shot, C2, C3):
                     return np.inf
 
             #phi_3
-            dets_next = X_c[X_c[:,1] == (f+1)]
+            dets_next = X_c[X_c[:, 1] == (f+1)]
             for det2 in dets_next:
                 ind2 = np.where(X == det2)[0][0]
                 label2 = np.where(Y[ind2, :] == 1)[0][0]
@@ -221,7 +223,7 @@ def old_phi_234(Y, X, shot, C2, C3):
                 C3[s] * dist(det1[2:22], det2[2:22]) * (label1 != 0) * (label2 != 0) * (label1 == label2)
 
 
-            _sum += phi_1(Y,X,C[0,:], mu)
+            _sum += phi_1(Y,X,C[0, :], mu)
 
     print "loss end " + str(time.time())
     return _sum
@@ -238,18 +240,18 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
 
     _sum = 0
 
-    filter = (X[:,1] == f) & (X[:,0] == s)
+    filter = (X[:, 1] == f) & (X[:, 0] == s)
     # X_cf_inds = np.where(X == filter)[0][0]
     X_cf_inds = np.where(filter == True)[0]
 
-    filter = (X[:,1] == f-1) & (X[:,0] == s)
+    filter = (X[:, 1] == f-1) & (X[:, 0] == s)
     try:
         X_pf_inds = np.where(filter == True)[0]
     except:
         X_pf_inds = []
 
 
-    filter = (X[:,1] == f+1) & (X[:,0] == s)
+    filter = (X[:, 1] == f+1) & (X[:, 0] == s)
     try:
         X_nf_inds = np.where(filter == True)[0]
     except:
@@ -266,10 +268,10 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
         if k == label2 and Y[i, 0] == 0:
             return np.inf
 
-    if shot[s,f-1]:
+    if shot[s, f-1]:
          _sum += time_pairwise(i, k, X_pf_inds, Y, X, C2, C3)
 
-    if shot[s,f]:
+    if shot[s, f]:
         _sum += time_pairwise(i, k, X_nf_inds, Y, X, C2, C3)
 
 
@@ -279,10 +281,10 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
     return _sum
 
 
-def time_pairwise(i, k, X_o, Y, X, C2,C3):
+def time_pairwise(i, k, X_o, Y, X, C2, C3):
 
-    s = X[i,0]
-    f = X[i,1]
+    s = X[i, 0]
+    f = X[i, 1]
 
     _sum = 0
     for x in X_o:
@@ -326,15 +328,15 @@ def E_step(Y, X, C, shot, mu, scene_cast, L):
     for y in range(Y.shape[0]):
         Y[y,:] = np.zeros((K))
         for k in range(K):
-            L[y,k] = phi_all(y,k,Y,X,shot,mu,C[0,:],C[1,:],C[2,:])
+            L[y,k] = phi_all(y, k, Y, X, shot, mu, C[0, :], C[1, :], C[2, :])
 
-        m = np.argmin(L[y,:])
+        m = np.argmin(L[y, :])
         try:
             if m.shape[0] > 0:
                 print "WE HAVE A PROBLEM"
         except:
             pass
-        Y[y,m] = 1
+        Y[y, m] = 1
 
 
         # loss = np.zeros((K))
@@ -368,27 +370,27 @@ def E_step(Y, X, C, shot, mu, scene_cast, L):
 #     return Y
 
 
-def M_step(Y,X,mu,C,shot):
+def M_step(Y, X, mu, C, shot):
 
     S = shot.shape[0]
     K = mu.shape[0]
 
     for k in range(K):
-        mu[k,:] = np.sum(Y[:, k].reshape(-1,1) * X[:, 23:], axis=0) / (np.sum(Y[:,k]) + eps)
+        mu[k,:] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (np.sum(Y[:, k]) + eps)
 
     for s in range(S):
         C[0, s] -= np.sum(Y[X[0] == s, 0])
 
     dC2, dC3 = M_step_C2_C3(Y, X, shot)
-    C[1,:] -= dC2
-    C[2,:] -= dC3
+    C[1, :] -= dC2
+    C[2, :] -= dC3
 
 
-def sum_loss(L,Y):
+def sum_loss(L, Y):
     _sum = 0
     for y in range(Y.shape[0]):
         label = np.where(Y[y, :] == 1)[0][0]
-        _sum += L[y,label]
+        _sum += L[y, label]
     return _sum
 
 def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=True):
@@ -398,10 +400,10 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=
 
         print "iteration " + str(iter)
 
-        E_step(Y,X,C,shot,mu,scene_cast,L)
-        M_step(Y,X,mu,C,shot)
+        E_step(Y, X, C, shot, mu, scene_cast, L)
+        M_step(Y, X, mu, C, shot)
 
-        l = sum_loss(L,Y)
+        l = sum_loss(L, Y)
         print l
 
         save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
@@ -465,7 +467,7 @@ if __name__ == '__main__':
     classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
     print 'K-Means Training'
     classifier.fit(X[:, 23:])
-    y = classifier.predict(X)
+    y = classifier.predict(X[:, 23:])
     centers = classifier.cluster_centers_
     mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change, centers, y) # Uncomment to use k-means init
 
