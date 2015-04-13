@@ -383,7 +383,7 @@ def sum_loss(L,Y):
         _sum += L[y,label]
     return _sum
 
-def EM(Y, X, C, shot, mu, scene_cast, L, maxiters=20):
+def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
 
     for iter in range(maxiters):
@@ -396,9 +396,26 @@ def EM(Y, X, C, shot, mu, scene_cast, L, maxiters=20):
         l = sum_loss(L,Y)
         print l
 
-        save_model(C, mu, )
+        save_model(C, mu, Y, iter, outdir, name_dict)
 
     return Y
+
+def save_model(C, mu, Y, iter, out_dir, name_dict):
+
+    outfile = out_dir+'/model_iter_'+str(iter)
+
+    labels = []
+    for y in range(Y.shape[0]):
+        label = np.where(Y[y, :] == 1)[0][0]
+
+        for (k, v) in name_dict.items():
+            if label == v:
+                name = k
+                break
+
+        labels.append(name)
+
+    np.savez(outfile, C, mu, Y, labels)
 
 
 def dist(A, B):
@@ -434,7 +451,7 @@ if __name__ == '__main__':
     N = len(name_dict.keys())
     mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
 
-    Y = EM(Y, X, C, shot_change, mu, scene_cast, L)
+    Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict)
 
     for s in range(2, S):
         scene_out = out_path+'scene'+str(s)+'/labels.txt'
