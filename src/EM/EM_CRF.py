@@ -391,7 +391,7 @@ def sum_loss(L,Y):
         _sum += L[y,label]
     return _sum
 
-def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20):
+def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=True):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
 
     for iter in range(maxiters):
@@ -404,13 +404,16 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20):
         l = sum_loss(L,Y)
         print l
 
-        save_model(C, mu, Y, iter, outdir, name_dict)
+        save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
 
     return Y
 
-def save_model(C, mu, Y, iter, out_dir, name_dict):
+def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
-    outfile = out_dir+'/model_iter_'+str(iter)
+    if kmeans:
+        outfile = out_dir+'/kmeans_init_model_iter_'+str(iter)
+    else:
+        outfile = out_dir+'/model_iter_'+str(iter)
 
     labels = []
     for y in range(Y.shape[0]):
@@ -459,14 +462,14 @@ if __name__ == '__main__':
     N = len(name_dict.keys())
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
-    # classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
-    # print 'K-Means Training'
-    # classifier.fit(X[:, 23:])
-    # y = classifier.predict(X)
-    # centers = classifier.cluster_centers_
-    # mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change, centers, y) # Uncomment to use k-means init
+    classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
+    print 'K-Means Training'
+    classifier.fit(X[:, 23:])
+    y = classifier.predict(X)
+    centers = classifier.cluster_centers_
+    mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change, centers, y) # Uncomment to use k-means init
 
-    mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
+    # mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
 
     Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict)
 
