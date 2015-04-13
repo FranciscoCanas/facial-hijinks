@@ -6,25 +6,34 @@ __author__ = 'elenitriantafillou'
 
 def construct_feature_matrix(in_dir, S):
 
-    # M = np.loadtxt(in_dir+'M_scene3.txt')
+    # M = np.loadtxt(in_dir+'M1.txt')
     # print M.shape # (261, 1961)
-    # X[:,:] = np.loadtxt(in_dir+'M_scene3.txt')
+    # X[:,:] = np.loadtxt(in_dir+'M3.m')
 
-    # X = np.loadtxt(in_dir+'M_scene1.txt')
-    # for scene_id in range(2,S):
-    #     M = np.loadtxt(in_dir+'M_scene'+str(i)+'.txt')
-    #     X = np.vstack((X, M))
+    temp1, temp2, files = os.walk(in_dir).next()
+    num_scenes = len(files) - 1
 
-    X = np.loadtxt(in_dir+'M_scene3.txt')
+    X = np.loadtxt(in_dir+'M2.m')
+    for i in range(3,num_scenes):
+
+        fname = in_dir+'M'+str(i)+'.m'
+        if not(os.path.isfile(fname)):
+            continue
+
+        M = np.loadtxt(fname)
+
+        X = np.vstack((X, M))
+
+    # X = np.loadtxt(in_dir+'M_scene3.txt')
+
+    X[:,1] -= 1
     return X
 
 
 def construct_shot_change(dir_shot_changes, S, max_frames):
 
     shot = np.zeros((S,max_frames))
-
     for scene_id in range(S):
-
         fname = dir_shot_changes+'scene_'+str(scene_id)+'frame_ids.txt'
         if not(os.path.isfile(fname)):
             continue
@@ -34,7 +43,6 @@ def construct_shot_change(dir_shot_changes, S, max_frames):
 
         shot[scene_id, s] = 1
 
-    print shot.shape
     return shot
 
 def load_data(dir_cast):
@@ -44,8 +52,9 @@ def load_data(dir_cast):
 
     # episode_cast = []
     name_dict = {}
-    n = 0
 
+    name_dict['N.A.P'] = 0
+    n = 1
     for line in f:
         # episode_cast.append(line[:-1])
         name_dict[line[:-1]] = n
@@ -87,25 +96,3 @@ def get_max_frames(frames_dir, S):
         frames_num.append(num)
 
     return max(frames_num)
-
-
-if __name__ == '__main__':
-
-    dir_cast = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/cast/'
-    dir_feature_matrix = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/feature_matrix_files/'
-    frames_dir = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/scenes/scene_frames/'
-    dir_shot_change = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/shot_changes/'
-
-    #the former is a list and the latter a list of lists
-    scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
-    # print len(cast_counts)
-
-    max_frames = get_max_frames(frames_dir,S)
-    print max_frames
-
-
-    X = construct_feature_matrix(dir_feature_matrix, S)
-    print X[:,1]
-
-    shot_change = construct_shot_change(dir_shot_change, S, max_frames)
-    # print shot_change
