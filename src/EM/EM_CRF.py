@@ -1,3 +1,4 @@
+from sklearn.cluster import KMeans
 from load_data import *
 from random import randint
 import time
@@ -5,13 +6,17 @@ import time
 eps = 1e-32
 
 
-def initialize(N, S, cast_counts, scene_cast, X, shot):
+def initialize(N, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None):
 
     K = N + 1
 
     DESCS_size = X.shape[1] - 23 # -3 for x,y,half_width, -18 for PTS, -2 for scene_id, frame_id
 
-    mu = (np.random.random((K, DESCS_size))) # cluster means
+    if not init_mu:
+        mu = (np.random.random((K, DESCS_size))) # cluster means
+    else:
+        mu = init_mu
+
     # log_mu = np.log(mu)
 
     Y = np.zeros((X.shape[0], K))
@@ -21,13 +26,16 @@ def initialize(N, S, cast_counts, scene_cast, X, shot):
 
     # assignment of names (clusters) to detections
     # (respects the scene weak label constraint)
-    for i in range(X.shape[0]):
-        scene_id = int(X[i, 0])
-        num_names = cast_counts[scene_id]
-        rand_name_id = randint(0, num_names-1)
+    if not init_y:
+        for i in range(X.shape[0]):
+            scene_id = int(X[i, 0])
+            num_names = cast_counts[scene_id]
+            rand_name_id = randint(0, num_names-1)
 
-        person_id = scene_cast[scene_id][rand_name_id]
-        Y[i, person_id] = 1
+            person_id = scene_cast[scene_id][rand_name_id]
+            Y[i, person_id] = 1
+    else:
+        Y[:,init_y] = 1
 
     for i in range(X.shape[0]):
         L[i, person_id] = phi_all(i, person_id, Y, X, shot, mu, C[0, :], C[1, :], C[2, :])
@@ -306,12 +314,12 @@ def loss_function(Y, X, C, shot, mu, scene_cast):
     S = C.shape[1]
     # return phi_1(Y, X, C[0,:], mu) + phi_2(Y,X,S) + phi_3(Y, X, shot, C[1,:], C[2,:]) + phi_4(Y, X, scene_cast)
 
+    pass
+    #return phi_234(Y, X, shot, C[1,:], C[2,:])
 
-    return phi_234(Y, X, shot, C[1,:], C[2,:])
 
 
-
-def E_step(Y, X, C, shot, mu, scene_cast,L):
+def E_step(Y, X, C, shot, mu, scene_cast, L):
 
     K = mu.shape[0]
 
@@ -445,10 +453,19 @@ if __name__ == '__main__':
 
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
     X = construct_feature_matrix(dir_feature_matrix, S)
-    max_frames = np.max(X[:,1]) + 1
+    max_frames = np.max(X[:, 1]) + 1
     shot_change = construct_shot_change(dir_shot_change, S, max_frames)
 
     N = len(name_dict.keys())
+
+    # K-means initialization: uncomment for true k-means awesomeness in your faces
+    # classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
+    # print 'K-Means Training'
+    # classifier.fit(X[:, 23:])
+    # y = classifier.predict(X)
+    # centers = classifier.cluster_centers_
+    # mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change, centers, y) # Uncomment to use k-means init
+
     mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
 
     Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict)
@@ -457,7 +474,7 @@ if __name__ == '__main__':
         scene_out = out_path+'scene'+str(s)+'/labels.txt'
         f = open(scene_out, 'w')
         for y in range(Y.shape[0]):
-            if X[y,0] != s:
+            if X[y, 0] != s:
                 continue
             label = np.where(Y[y, :] == 1)[0][0]
 
