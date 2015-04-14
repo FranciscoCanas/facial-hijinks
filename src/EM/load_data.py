@@ -4,7 +4,7 @@ __author__ = 'elenitriantafillou'
 
 
 
-def construct_feature_matrix(in_dir, S):
+def construct_feature_matrix(in_dir):
 
     # M = np.loadtxt(in_dir+'M1.txt')
     # print M.shape # (261, 1961)
@@ -21,7 +21,6 @@ def construct_feature_matrix(in_dir, S):
             continue
 
         M = np.loadtxt(fname)
-
         X = np.vstack((X, M))
 
     # X = np.loadtxt(in_dir+'M_scene3.txt')
@@ -85,14 +84,3 @@ def load_data(dir_cast):
     return scene_cast, count_scene_cast, name_dict, num_scenes
 
 
-def get_max_frames(frames_dir, S):
-
-    frames_num = []
-
-    for scene_id in range(1,S):
-        path = frames_dir+'scene_'+str(scene_id)
-        temp1, temp2, files = os.walk(path).next()
-        num = len(files) - 1
-        frames_num.append(num)
-
-    return max(frames_num)

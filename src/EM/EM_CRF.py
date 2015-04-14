@@ -258,7 +258,10 @@ if __name__ == '__main__':
     out_path = '/Users/elenitriantafillou/model_output/'
 
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
-    X = construct_feature_matrix(dir_feature_matrix, S)
+
+    S = 15
+
+    X = construct_feature_matrix(dir_feature_matrix)
     max_frames = np.max(X[:, 1]) + 1
     shot_change = construct_shot_change(dir_shot_change, S, max_frames)
 
