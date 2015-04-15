@@ -3,12 +3,12 @@ from load_data import *
 from random import randint
 import time
 
+np.seterr(all='warn')
+
 eps = 1e-32
 
 
-def initialize(N, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None):
-
-    K = N
+def initialize(K, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None):
 
     DESCS_size = X.shape[1] - 23 # -3 for x,y,half_width, -18 for PTS, -2 for scene_id, frame_id
 
@@ -71,14 +71,16 @@ def M_step_C2_C3(Y, X, shot):
             for det1 in dets_cur:
                 for det2 in dets_next:
 
-                    ind1 = np.where(X == det1)[0][0]
-                    ind2 = np.where(X == det2)[0][0]
+                    # ind1 = np.where(X == det1)[0][0]
+                    # ind2 = np.where(X == det2)[0][0]
+                    ind1 = np.where(np.all(X == det1, axis=1))[0][0]
+                    ind2 = np.where(np.all(X == det2, axis=1))[0][0]
 
                     label1 = np.where(Y[ind1, :] == 1)[0][0]
                     label2 = np.where(Y[ind2, :] == 1)[0][0]
 
-                    _sum_C2[s] += dist(det1[2:22], det2[2:22]) * (label1 != 0) * (label2 != 0) * (label1 != label2)
-                    _sum_C3[s] += dist(det1[2:22], det2[2:22]) * (label1 != 0) * (label2 != 0) * (label1 == label2)
+                    _sum_C2[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 != label2)
+                    _sum_C3[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 == label2)
 
     return _sum_C2, _sum_C3
 
@@ -118,7 +120,7 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
 
         label2 = np.where(Y[det_cf, :] == 1)[0][0]
 
-        if k == label2 and Y[i, 0] == 0:
+        if k == label2 and Y[i, 0] != 0:
             return np.inf
 
     if shot[s, f-1]:
@@ -144,7 +146,7 @@ def time_pairwise(i, k, X_o, Y, X, C2, C3):
         label2 = np.where(Y[x, :] == 1)[0][0]
 
         _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
-            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
+            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2) + (C2[s]**2)/2 + (C3[s]**2)/2
 
     return _sum
 
@@ -175,14 +177,18 @@ def M_step(Y, X, mu, C, shot):
     K = mu.shape[0]
 
     for k in range(K):
-        mu[k,:] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (2*(np.sum(Y[:, k]) + eps))
+        mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (2*(np.sum(Y[:, k]) + eps))
 
     for s in range(S):
-        C[0, s] = -np.sum(Y[X[0] == s, 0])
+        C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
 
     C2, C3 = M_step_C2_C3(Y, X, shot)
     C[1, :] = C2
     C[2, :] = -C3
+
+    print "C1 " + str(C[0,:]) + '\n'
+    print "C2 " + str(C[1,:]) + '\n'
+    print "C3 " + str(C[2,:]) + '\n'
 
 
 def sum_loss(L, Y):
@@ -236,14 +242,6 @@ def dist(A, B):
 
 
 
-def name_predictions(Y, name_dict):
-    names = []
-    for y in Y:
-        ind = np.nonzero(y)[0][0]
-        names.append(name_dict[ind])
-    return names
-
-
 if __name__ == '__main__':
 
     use_kmeans = True
@@ -269,7 +267,7 @@ if __name__ == '__main__':
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
     if use_kmeans:
-        classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
+        classifier = KMeans(n_clusters=N, max_iter=1, precompute_distances=True)
         print 'K-Means Training'
         classifier.fit(X[:, 23:])
         y = classifier.predict(X[:, 23:])
