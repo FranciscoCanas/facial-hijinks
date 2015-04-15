@@ -120,7 +120,7 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
 
         label2 = np.where(Y[det_cf, :] == 1)[0][0]
 
-        if k == label2 and Y[i, 0] != 0:
+        if k == label2 and k != 0:
             return np.inf
 
     if shot[s, f-1]:
