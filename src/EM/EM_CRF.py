@@ -69,15 +69,20 @@ def M_step_C2_C3(Y, X, shot):
             dets_next = X_c[X_c[:, 1] == (f+1)]
 
             for det1 in dets_cur:
+
+                ind1 = np.where(np.all(X == det1, axis=1))[0][0]
+                label1 = np.where(Y[ind1, :] == 1)[0][0]
+
+                if label1 == 0:
+                    continue
+
                 for det2 in dets_next:
 
-                    # ind1 = np.where(X == det1)[0][0]
-                    # ind2 = np.where(X == det2)[0][0]
-                    ind1 = np.where(np.all(X == det1, axis=1))[0][0]
                     ind2 = np.where(np.all(X == det2, axis=1))[0][0]
-
-                    label1 = np.where(Y[ind1, :] == 1)[0][0]
                     label2 = np.where(Y[ind2, :] == 1)[0][0]
+
+                    if label2 == 0:
+                        continue
 
                     _sum_C2[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 != label2)
                     _sum_C3[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 == label2)
@@ -177,14 +182,10 @@ def M_step(Y, X, mu, C, shot):
     K = mu.shape[0]
 
     for k in range(K):
-        mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (2*(np.sum(Y[:, k]) + eps))
+        mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (np.sum(Y[:, k]) + eps)
 
     for s in range(S):
-
-        filter = (X[:, 0] == s)
-        X_s_inds = np.where(filter == True)[0]
-        C[0, s] = -np.sum(Y[X_s_inds, 0])
-        # C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
+        C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
 
     C2, C3 = M_step_C2_C3(Y, X, shot)
     C[1, :] = C2
@@ -205,6 +206,9 @@ def sum_loss(L, Y):
 def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=True):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
 
+    l = sum_loss(L, Y)
+    print "initial loss: " + str(l)
+
     for iter in range(maxiters):
 
         print "iteration " + str(iter)
@@ -216,6 +220,7 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=
         print l
 
         save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
+        label_hist(Y, 2)
 
     return Y
 
@@ -244,6 +249,26 @@ def dist(A, B):
     # mu*mu.T + X*X.T   # (K+1, dets)
     return np.sum((A - B)**2)
 
+
+def label_hist(Y, s):
+
+    dets_num = Y.shape[0]
+    character_num = Y.shape[1]
+
+    counts = np.zeros((character_num))
+    for i in range(dets_num):
+        if (X[i, 0] != s):
+            continue
+        label = np.where(Y[i, :] == 1)[0][0]
+        counts[label] += 1
+
+    for c in range(character_num):
+        for (k, v) in name_dict.items():
+            if c == v:
+                name = k
+                break
+
+        print name + ': ' + str(int(counts[c])) + '\n'
 
 
 if __name__ == '__main__':
