@@ -62,7 +62,7 @@ def M_step_C2_C3(Y, X, shot):
         F = X_c[-1, 1]
         for f in range(int(F) - 1):
 
-            if shot[s,f]:
+            if shot[s, f]:
                 continue
 
             dets_cur = X_c[X_c[:, 1] == f]
@@ -123,15 +123,15 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
         if k == label2 and k != 0:
             return np.inf
 
-    if shot[s, f-1]:
+    if (shot[s, f-1] == 0):
          _sum += time_pairwise(i, k, X_pf_inds, Y, X, C2, C3)
 
-    if shot[s, f]:
+    if (shot[s, f] == 0):
         _sum += time_pairwise(i, k, X_nf_inds, Y, X, C2, C3)
 
 
     #phi_1
-    _sum += dist(mu[k, :], X[i, 23:]) + C1[s] * Y[i, 0]
+    _sum += dist(mu[k, :], X[i, 23:]) + C1[s] * Y[i, 0] + (C1[s]**2)/2
 
     return _sum
 
@@ -180,7 +180,11 @@ def M_step(Y, X, mu, C, shot):
         mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (2*(np.sum(Y[:, k]) + eps))
 
     for s in range(S):
-        C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
+
+        filter = (X[:, 0] == s)
+        X_s_inds = np.where(filter == True)[0]
+        C[0, s] = -np.sum(Y[X_s_inds, 0])
+        # C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
 
     C2, C3 = M_step_C2_C3(Y, X, shot)
     C[1, :] = C2
@@ -247,6 +251,7 @@ if __name__ == '__main__':
     use_kmeans = True
 
     prepend = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/'
+    # prepend = '/u/eleni/412-project/the_mentalist_1x19/'
 
     dir_cast = prepend+'cast/'
     dir_feature_matrix = prepend+'feature_matrix_files/'
@@ -254,6 +259,7 @@ if __name__ == '__main__':
     dir_shot_change = prepend+'shot_changes/'
 
     out_path = '/Users/elenitriantafillou/model_output/'
+    # out_path = '/u/eleni/model_output/'
 
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
 
@@ -267,7 +273,7 @@ if __name__ == '__main__':
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
     if use_kmeans:
-        classifier = KMeans(n_clusters=N, max_iter=1, precompute_distances=True)
+        classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
         print 'K-Means Training'
         classifier.fit(X[:, 23:])
         y = classifier.predict(X[:, 23:])
