@@ -137,7 +137,7 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
 
     #phi_1
     _sum += dist(mu[k, :], X[i, 23:]) + C1[s] * Y[i, 0] + (C1[s]**2)/2
-
+    _sum += (C2[s]**2)/2 + (C3[s]**2)/2
     return _sum
 
 
@@ -151,7 +151,7 @@ def time_pairwise(i, k, X_o, Y, X, C2, C3):
         label2 = np.where(Y[x, :] == 1)[0][0]
 
         _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
-            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2) + (C2[s]**2)/2 + (C3[s]**2)/2
+            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
 
     return _sum
 
