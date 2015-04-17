@@ -55,7 +55,7 @@ def M_step_C2_C3(Y, X, shot):
     _sum_C3 = np.zeros((S))
 
     for s in range(S):
-        X_c = X[X[:,0] == s]
+        X_c = X[X[:, 0] == s]
         if X_c.shape[0] == 0:
             continue
 
@@ -73,19 +73,19 @@ def M_step_C2_C3(Y, X, shot):
                 ind1 = np.where(np.all(X == det1, axis=1))[0][0]
                 label1 = np.where(Y[ind1, :] == 1)[0][0]
 
-                if label1 == 0:
-                    continue
+                # if label1 == 0:
+                #     continue
 
                 for det2 in dets_next:
 
                     ind2 = np.where(np.all(X == det2, axis=1))[0][0]
                     label2 = np.where(Y[ind2, :] == 1)[0][0]
 
-                    if label2 == 0:
-                        continue
+                    # if label2 == 0:
+                    #     continue
 
-                    _sum_C2[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 != label2)
-                    _sum_C3[s] += dist(det1[2:23], det2[2:23]) * (label1 != 0) * (label2 != 0) * (label1 == label2)
+                    _sum_C2[s] += dist(det1[2:23], det2[2:23]) * (label1 != label2)
+                    _sum_C3[s] += dist(det1[2:23], det2[2:23]) * (label1 == label2)
 
     return _sum_C2, _sum_C3
 
@@ -144,14 +144,16 @@ def phi_all(i, k, Y, X, shot, mu, C1, C2, C3):
 def time_pairwise(i, k, X_o, Y, X, C2, C3):
 
     s = X[i, 0]
-    f = X[i, 1]
 
     _sum = 0
     for x in X_o:
         label2 = np.where(Y[x, :] == 1)[0][0]
 
-        _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
-            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
+        # _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
+        #     C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
+
+        _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != label2) + \
+            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k == label2)
 
     return _sum
 
@@ -279,7 +281,7 @@ if __name__ == '__main__':
     # prepend = '/u/eleni/412-project/the_mentalist_1x19/'
 
     dir_cast = prepend+'cast/'
-    dir_feature_matrix = prepend+'feature_matrix_files/'
+    dir_feature_matrix = prepend+'feature_matrix_files/more_boxes/'
     frames_dir = prepend+'scenes/scene_frames/'
     dir_shot_change = prepend+'shot_changes/'
 
@@ -288,7 +290,7 @@ if __name__ == '__main__':
 
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
 
-    S = 15
+    S = 20
 
     X = construct_feature_matrix(dir_feature_matrix)
     max_frames = np.max(X[:, 1]) + 1
