@@ -21,11 +21,12 @@ def construct_feature_matrix(in_dir):
             continue
 
         M = np.loadtxt(fname)
+        if M.shape[0] == 0:
+            continue
+
         X = np.vstack((X, M))
 
-    # X = np.loadtxt(in_dir+'M_scene3.txt')
-
-    X[:,1] -= 1
+    X[:, 1] -= 1
     return X
 
 
@@ -84,3 +85,13 @@ def load_data(dir_cast):
     return scene_cast, count_scene_cast, name_dict, num_scenes
 
 
+# if __name__ == '__main__':
+#     prepend = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/'
+#
+#     dir_cast = prepend+'cast/'
+#     feature_dir = prepend+'feature_matrix_files/'
+#
+#     scene_cast, count_scene_cast, name_dict, num_scenes = load_data(dir_cast)
+#     construct_feature_matrix(feature_dir)
+#
+#     print name_dict
