@@ -228,8 +228,9 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=
 
 def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
+    # ver2 is for smoothing for n.a.p too.
     if kmeans:
-        outfile = out_dir+'/kmeans_init_model_iter_'+str(iter)
+        outfile = out_dir+'/kmeans_init_ver2_iter_'+str(iter)
     else:
         outfile = out_dir+'/model_iter_'+str(iter)
 
@@ -300,7 +301,7 @@ if __name__ == '__main__':
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
     if use_kmeans:
-        classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
+        classifier = KMeans(n_clusters=N, max_iter=50, precompute_distances=True)
         print 'K-Means Training'
         classifier.fit(X[:, 23:])
         y = classifier.predict(X[:, 23:])
