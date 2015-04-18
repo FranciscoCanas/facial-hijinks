@@ -4,6 +4,43 @@ __author__ = 'elenitriantafillou'
 
 
 
+def construct_feature_matrix(in_dir, test_scenes):
+
+    # assumes that all scenes belong to training
+    # except for those mentioned in list test_scenes
+
+    temp1, temp2, files = os.walk(in_dir).next()
+    num_scenes = len(files) - 1
+
+    for i in range(2, num_scenes):
+
+        fname = in_dir+'M'+str(i)+'.m'
+        if not(os.path.isfile(fname)):
+            continue
+
+        if i in test_scenes:
+            M_test = np.loadtxt(fname)
+            if M_test.shape[0] == 0:
+                continue
+            if not X_test:
+                X_test = M_test
+            else:
+                X_test = np.vstack((X_test, M_test))
+
+        else:
+            M_train = np.loadtxt(fname)
+            if M_train.shape[0] == 0:
+                continue
+            if not X_train:
+                X_train = M_train
+            else:
+                X_train = np.vstack((X_train, M_train))
+
+
+    return X_train, X_test
+
+
+
 def construct_feature_matrix(in_dir):
 
     # M = np.loadtxt(in_dir+'M1.txt')
@@ -13,10 +50,8 @@ def construct_feature_matrix(in_dir):
     temp1, temp2, files = os.walk(in_dir).next()
     num_scenes = len(files) - 1
 
-    print
-
     X = np.loadtxt(in_dir+'M2.m')
-    for i in range(3,num_scenes):
+    for i in range(3, num_scenes):
 
         fname = in_dir+'M'+str(i)+'.m'
         if not(os.path.isfile(fname)):

@@ -35,7 +35,10 @@ def initialize(K, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
             person_id = scene_cast[scene_id][rand_name_id]
             Y[i, person_id] = 1
     else:
-        Y[:, init_y] = 1
+        # Y[:, init_y] = 1
+        for d in range(Y.shape[0]):
+            Y[d, init_y[d]] = 1
+
 
 
     for i in range(X.shape[0]):
@@ -203,8 +206,14 @@ def sum_loss(L, Y):
         _sum += L[y, label]
     return _sum
 
-def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, t3, t5, t6, maxiters=20, kmeans=True):
+def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, t3, t5, t6, maxiters=100, kmeans=True):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
+
+    accs = np.zeros((maxiters+1))
+    acc = evaluate(X, Y, t3, t5, t6)
+
+    accs[0] = acc #kmeans acc
+    print "kmeans acc " + str(acc)
 
     l = sum_loss(L, Y)
     print "initial loss: " + str(l)
@@ -225,10 +234,12 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, t3, t5, t6, maxiters
         print "loss for my favorite detection: " + str(L[88, fav_label])
 
         save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
-        label_hist(Y, 2)
+        # label_hist(Y, 2)
 
         # evaluate using ground truths:
-        evaluate(X, Y, t3, t5, t6)
+        acc = evaluate(X, Y, t3, t5, t6)
+        accs[iter+1] = acc
+        print accs
 
     return Y
 
@@ -236,7 +247,7 @@ def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
     # ver2 is for smoothing for n.a.p too.
     if kmeans:
-        outfile = out_dir+'/kmeans_init_ver2_iter_'+str(iter)
+        outfile = out_dir+'/better_kmeans_init_iter_'+str(iter)
     else:
         outfile = out_dir+'/model_iter_'+str(iter)
 
@@ -274,7 +285,7 @@ def evaluate(X, Y, t3, t5, t6):
     acc_6 = np.where(label_6 == t6)[0].shape[0]
 
     acc = (acc_3 + acc_5 + acc_6) / float(num_dets_3 + num_dets_5 + num_dets_6)
-    print acc
+    return acc
 
 def label_hist(Y, s):
 
@@ -325,7 +336,7 @@ if __name__ == '__main__':
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
     if use_kmeans:
-        classifier = KMeans(n_clusters=N, max_iter=50, precompute_distances=True)
+        classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
         print 'K-Means Training'
         classifier.fit(X[:, 23:])
         y = classifier.predict(X[:, 23:])
@@ -334,6 +345,7 @@ if __name__ == '__main__':
 
     else:
         mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
+
 
     Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict, t3, t5, t6, kmeans=use_kmeans)
 
