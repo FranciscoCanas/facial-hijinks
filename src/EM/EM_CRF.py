@@ -17,10 +17,7 @@ def initialize(K, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
     else:
         mu = init_mu
 
-    # log_mu = np.log(mu)
-
     Y = np.zeros((X.shape[0], K))
-
     C = np.random.random((3, S))
     L = np.zeros((X.shape[0], K)) + np.inf
 
@@ -35,11 +32,8 @@ def initialize(K, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
             person_id = scene_cast[scene_id][rand_name_id]
             Y[i, person_id] = 1
     else:
-        # Y[:, init_y] = 1
         for d in range(Y.shape[0]):
             Y[d, init_y[d]] = 1
-
-
 
     for i in range(X.shape[0]):
         person_id = np.where(Y[i, :] == 1)[0][0]
@@ -206,46 +200,51 @@ def sum_loss(L, Y):
         _sum += L[y, label]
     return _sum
 
-def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, t3, t5, t6, maxiters=100, kmeans=True):
+def EM(Y_tr, X_tr, X_test, C, shot, mu, scene_cast, L_tr, outdir, name_dict, t3, t5, t6, test_scenes, maxiters=50, kmeans=True):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
 
-    accs = np.zeros((maxiters+1))
-    acc = evaluate(X, Y, t3, t5, t6)
+    accs_tr = np.zeros((maxiters+1))
+    acc_tr = evaluate_train(X_tr, Y_tr, t3, t5, t6, test_scenes)
+    accs_tr[0] = acc_tr #kmeans acc
+    print "kmeans acc " + str(acc_tr)
 
-    accs[0] = acc #kmeans acc
-    print "kmeans acc " + str(acc)
 
-    l = sum_loss(L, Y)
+    accs_test = np.zeros((maxiters+1))
+    Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+    acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+    accs_test[0] = acc_test
+
+
+    l = sum_loss(L_tr, Y_tr)
     print "initial loss: " + str(l)
-    fav_label = np.where(Y[88, :] == 1)[0][0]
-    print "INIT loss for my favorite detection: " + str(L[88, fav_label])
 
     for iter in range(maxiters):
 
         print "iteration " + str(iter)
 
-        E_step(Y, X, C, shot, mu, scene_cast, L)
-        M_step(Y, X, mu, C, shot)
+        E_step(Y_tr, X_tr, C, shot, mu, scene_cast, L_tr)
+        M_step(Y_tr, X_tr, mu, C, shot)
 
-        l = sum_loss(L, Y)
+        l = sum_loss(L_tr, Y_tr)
         print l
 
-        fav_label = np.where(Y[88, :] == 1)[0][0]
-        print "loss for my favorite detection: " + str(L[88, fav_label])
+        save_model(C, mu, Y_tr, iter, outdir, name_dict, kmeans)
 
-        save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
-        # label_hist(Y, 2)
+        # evaluate validation set using ground truths:
+        acc_tr = evaluate_train(X_tr, Y_tr, t3, t5, t6, test_scenes)
+        accs_tr[iter+1] = acc_tr
+        print accs_tr
 
-        # evaluate using ground truths:
-        acc = evaluate(X, Y, t3, t5, t6)
-        accs[iter+1] = acc
-        print accs
+        # evaluate test using ground truths:
+        Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+        acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+        accs_test[iter+1] = acc_test
+        print accs_test
 
-    return Y
+    return Y_tr, accs_tr, accs_test
 
 def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
-    # ver2 is for smoothing for n.a.p too.
     if kmeans:
         outfile = out_dir+'/better_kmeans_init_iter_'+str(iter)
     else:
@@ -266,11 +265,12 @@ def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
 
 def dist(A, B):
-    # mu*mu.T + X*X.T   # (K+1, dets)
     return np.sum((A - B)**2)
 
 
-def evaluate(X, Y, t3, t5, t6):
+def evaluate_train(X, Y, t3, t5, t6, test_scenes):
+
+    test = test_scenes[0]
 
     num_dets_3 = X[X[:,0] == 3, :].shape[0]
     num_dets_5 = X[X[:,0] == 5, :].shape[0]
@@ -280,32 +280,63 @@ def evaluate(X, Y, t3, t5, t6):
     label_5 = np.where(Y[X[:, 0] == 5, :] == 1)[1]
     label_6 = np.where(Y[X[:, 0] == 6, :] == 1)[1]
 
-    acc_3 = np.where(label_3 == t3)[0].shape[0]
-    acc_5 = np.where(label_5 == t5)[0].shape[0]
-    acc_6 = np.where(label_6 == t6)[0].shape[0]
+    got_rights_3 = np.where(label_3 == t3)[0].shape[0]
+    got_rights_5 = np.where(label_5 == t5)[0].shape[0]
+    got_rights_6 = np.where(label_6 == t6)[0].shape[0]
 
-    acc = (acc_3 + acc_5 + acc_6) / float(num_dets_3 + num_dets_5 + num_dets_6)
+    if test == 3:
+        num_dets = num_dets_5 + num_dets_6
+        got_rights = got_rights_5 + got_rights_6
+    elif test == 5:
+        num_dets = num_dets_3 + num_dets_6
+        got_rights = got_rights_3 + got_rights_6
+    elif test == 6:
+        num_dets = num_dets_5 + num_dets_3
+        got_rights = got_rights_5 + got_rights_3
+
+    acc = got_rights / float(num_dets)
     return acc
 
-def label_hist(Y, s):
 
-    dets_num = Y.shape[0]
-    character_num = Y.shape[1]
+# assuming that the test set is only one scene...
+def get_test_accuracy(Y_test, t3, t5, t6, test_scenes):
 
-    counts = np.zeros((character_num))
-    for i in range(dets_num):
-        if (X[i, 0] != s):
-            continue
-        label = np.where(Y[i, :] == 1)[0][0]
-        counts[label] += 1
+    if 3 in test_scenes:
+        t = t3
+    elif 5 in test_scenes:
+        t = t5
+    else:
+        t = t6
 
-    for c in range(character_num):
-        for (k, v) in name_dict.items():
-            if c == v:
-                name = k
-                break
+    preds = np.where(Y_test[:,:] == 1)[1]
+    got_rights = np.where(preds == t)[0].shape[0]
 
-        print name + ': ' + str(int(counts[c])) + '\n'
+    test_acc = got_rights / float(X_test.shape[0])
+    return test_acc
+
+
+# predict a label for each detection in X_test
+def predict(X_test, shot, mu, scene_cast, C, test_scenes):
+    N = mu.shape[0]
+    L_test = np.zeros((X_test.shape[0], N)) + np.inf
+
+    # initialize Y_test
+    Y_test = np.zeros((X_test.shape[0], N))
+    for i in range(Y_test.shape[0]):
+        scene_id = int(X_test[i, 0])
+        num_names = cast_counts[scene_id]
+        rand_name_id = randint(0, num_names-1)
+        person_id = scene_cast[scene_id][rand_name_id]
+        Y_test[i, person_id] = 1
+
+    # initialize the C for the test scenes
+    C_ave = np.mean(C, axis=1)
+    for test_scene in test_scenes:
+        C[:, test_scene] = C_ave
+
+    Y_test = E_step(Y_test, X_test, C, shot, mu, scene_cast, L_test)
+    return Y_test
+
 
 
 if __name__ == '__main__':
@@ -317,6 +348,7 @@ if __name__ == '__main__':
 
     dir_cast = prepend+'cast/'
     dir_feature_matrix = prepend+'feature_matrix_files/'
+    # dir_feature_matrix = prepend+'feature_matrix_files/zero_thresh/'
     frames_dir = prepend+'scenes/scene_frames/'
     dir_shot_change = prepend+'shot_changes/'
     targets_dir = prepend+'labels/'
@@ -324,45 +356,69 @@ if __name__ == '__main__':
     out_path = '/Users/elenitriantafillou/model_output/'
     # out_path = '/u/eleni/model_output/'
 
+    plot_path = out_path+'plot_files/'
+
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
     t3, t5, t6 = load_labels(targets_dir)
     S = 40
 
-    X = construct_feature_matrix(dir_feature_matrix)
-    max_frames = np.max(X[:, 1]) + 1
-    shot_change = construct_shot_change(dir_shot_change, S, max_frames)
+    test_scenes = [5]
+    X_train, X_test = construct_feature_matrix_train_test(dir_feature_matrix, test_scenes)
 
+    max_frames_tr = np.max(X_train[:, 1]) + 1
+    max_frames_t = np.max(X_test[:, 1]) + 1
+    max_frames = max(max_frames_tr, max_frames_t)
+
+    shot_change = construct_shot_change(dir_shot_change, S, max_frames)
     N = len(name_dict.keys())
 
     # K-means initialization: uncomment for true k-means awesomeness in your faces
     if use_kmeans:
         classifier = KMeans(n_clusters=N, max_iter=100, precompute_distances=True)
         print 'K-Means Training'
-        classifier.fit(X[:, 23:])
-        y = classifier.predict(X[:, 23:])
+        classifier.fit(X_train[:, 23:])
+        y = classifier.predict(X_train[:, 23:])
         centers = classifier.cluster_centers_
-        mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change, centers, y) # Uncomment to use k-means init
+        mu, Y_train, C, L_train = initialize(N, S, cast_counts, scene_cast, X_train, shot_change, centers, y) # Uncomment to use k-means init
 
     else:
-        mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
+        mu, Y_train, C, L_train = initialize(N, S, cast_counts, scene_cast, X_train, shot_change)
 
 
-    Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict, t3, t5, t6, kmeans=use_kmeans)
+    Y_train, accs_train, accs_test = EM(Y_train, X_train, X_test, C, shot_change, mu, scene_cast, L_train, out_path, name_dict, t3, t5, t6, test_scenes, kmeans=use_kmeans)
 
-    for s in range(2, S):
-        if use_kmeans:
-            scene_out = out_path+'scene'+str(s)+'/kmeans_init_labels.txt'
-        else:
-            scene_out = out_path+'scene'+str(s)+'/labels.txt'
-        f = open(scene_out, 'w')
-        for y in range(Y.shape[0]):
-            if X[y, 0] != s:
-                continue
-            label = np.where(Y[y, :] == 1)[0][0]
+    acc_tr_fname = plot_path + 'train_acc.txt'
+    f = open(acc_tr_fname, 'w')
+    for acc in accs_train:
+        f.write(str(acc)+'\n')
+    f.close()
 
-            for (k, v) in name_dict.items():
-                if label == v:
-                    name = k
-                    break
+    acc_t_fname = plot_path + 'test_acc.txt'
+    f = open(acc_t_fname, 'w')
+    for acc in accs_test:
+        f.write(str(acc)+'\n')
+    f.close()
 
-            f.write(name+'\n')
+
+    # test set
+    Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+    test_acc = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+    print "test acc for scene 5: " + str(test_acc)
+
+    # for s in range(2, S):
+    #     if use_kmeans:
+    #         scene_out = out_path+'scene'+str(s)+'/kmeans_init_labels.txt'
+    #     else:
+    #         scene_out = out_path+'scene'+str(s)+'/labels.txt'
+    #     f = open(scene_out, 'w')
+    #     for y in range(Y.shape[0]):
+    #         if X[y, 0] != s:
+    #             continue
+    #         label = np.where(Y[y, :] == 1)[0][0]
+    #
+    #         for (k, v) in name_dict.items():
+    #             if label == v:
+    #                 name = k
+    #                 break
+    #
+    #         f.write(name+'\n')

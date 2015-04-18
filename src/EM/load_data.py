@@ -4,7 +4,7 @@ __author__ = 'elenitriantafillou'
 
 
 
-def construct_feature_matrix(in_dir, test_scenes):
+def construct_feature_matrix_train_test(in_dir, test_scenes):
 
     # assumes that all scenes belong to training
     # except for those mentioned in list test_scenes
@@ -22,19 +22,21 @@ def construct_feature_matrix(in_dir, test_scenes):
             M_test = np.loadtxt(fname)
             if M_test.shape[0] == 0:
                 continue
-            if not X_test:
-                X_test = M_test
-            else:
+
+            try:
                 X_test = np.vstack((X_test, M_test))
+            except:
+                X_test = M_test
 
         else:
             M_train = np.loadtxt(fname)
             if M_train.shape[0] == 0:
                 continue
-            if not X_train:
-                X_train = M_train
-            else:
+
+            try:
                 X_train = np.vstack((X_train, M_train))
+            except:
+                X_train = M_train
 
 
     return X_train, X_test
@@ -133,12 +135,13 @@ if __name__ == '__main__':
     prepend = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/'
 
     dir_cast = prepend+'cast/'
-#     feature_dir = prepend+'feature_matrix_files/'
+    feature_dir = prepend+'feature_matrix_files/'
 #
     scene_cast, count_scene_cast, name_dict, num_scenes = load_data(dir_cast)
 #     construct_feature_matrix(feature_dir)
     targets_dir = prepend+'labels/'
     t3, t5, t6 = load_labels(targets_dir)
 
-
+    test_scenes = [5]
+    X_train, X_test = construct_feature_matrix_train_test(feature_dir, test_scenes)
     print name_dict
