@@ -13,6 +13,8 @@ def construct_feature_matrix(in_dir):
     temp1, temp2, files = os.walk(in_dir).next()
     num_scenes = len(files) - 1
 
+    print
+
     X = np.loadtxt(in_dir+'M2.m')
     for i in range(3,num_scenes):
 
@@ -85,13 +87,23 @@ def load_data(dir_cast):
     return scene_cast, count_scene_cast, name_dict, num_scenes
 
 
-# if __name__ == '__main__':
-#     prepend = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/'
-#
-#     dir_cast = prepend+'cast/'
+def load_labels(targets_dir):
+    t3 = np.loadtxt(targets_dir + 'scene3_labels.txt')
+    t5 = np.loadtxt(targets_dir + 'scene5_labels.txt')
+    t6 = np.loadtxt(targets_dir + 'scene6_labels.txt')
+
+    return t3, t5, t6
+
+if __name__ == '__main__':
+    prepend = '/Users/elenitriantafillou/research_ML/the_mentalist_1x19/'
+
+    dir_cast = prepend+'cast/'
 #     feature_dir = prepend+'feature_matrix_files/'
 #
-#     scene_cast, count_scene_cast, name_dict, num_scenes = load_data(dir_cast)
+    scene_cast, count_scene_cast, name_dict, num_scenes = load_data(dir_cast)
 #     construct_feature_matrix(feature_dir)
-#
-#     print name_dict
+    targets_dir = prepend+'labels/'
+    t3, t5, t6 = load_labels(targets_dir)
+
+
+    print name_dict

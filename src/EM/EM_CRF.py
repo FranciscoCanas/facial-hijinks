@@ -45,8 +45,6 @@ def initialize(K, S, cast_counts, scene_cast, X, shot, init_mu=None, init_y=None
     return mu, Y, C, L
 
 
-
-
 def M_step_C2_C3(Y, X, shot):
 
     S = shot.shape[0]
@@ -73,16 +71,16 @@ def M_step_C2_C3(Y, X, shot):
                 ind1 = np.where(np.all(X == det1, axis=1))[0][0]
                 label1 = np.where(Y[ind1, :] == 1)[0][0]
 
-                # if label1 == 0:
-                #     continue
+                if label1 == 0:
+                    continue
 
                 for det2 in dets_next:
 
                     ind2 = np.where(np.all(X == det2, axis=1))[0][0]
                     label2 = np.where(Y[ind2, :] == 1)[0][0]
 
-                    # if label2 == 0:
-                    #     continue
+                    if label2 == 0:
+                        continue
 
                     _sum_C2[s] += dist(det1[2:23], det2[2:23]) * (label1 != label2)
                     _sum_C3[s] += dist(det1[2:23], det2[2:23]) * (label1 == label2)
@@ -149,11 +147,11 @@ def time_pairwise(i, k, X_o, Y, X, C2, C3):
     for x in X_o:
         label2 = np.where(Y[x, :] == 1)[0][0]
 
-        # _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
-        #     C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
-
-        _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != label2) + \
-            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k == label2)
+        _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k != label2) + \
+            C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != 0) * (label2 != 0) * (k == label2)
+        #
+        # _sum += -C2[s] * dist(X[i, 2:23], X[x, 2:23]) * (k != label2) + \
+        #     C3[s] * dist(X[i, 2:23], X[x, 2:23]) * (k == label2)
 
     return _sum
 
@@ -187,11 +185,11 @@ def M_step(Y, X, mu, C, shot):
         mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (np.sum(Y[:, k]) + eps)
 
     for s in range(S):
-        C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
+        C[0, s] = np.sum(Y[X[:, 0] == s, 0])
 
     C2, C3 = M_step_C2_C3(Y, X, shot)
     C[1, :] = C2
-    C[2, :] = -C3
+    C[2, :] = C3
 
     print "C1 " + str(C[0,:]) + '\n'
     print "C2 " + str(C[1,:]) + '\n'
@@ -205,11 +203,13 @@ def sum_loss(L, Y):
         _sum += L[y, label]
     return _sum
 
-def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=True):
+def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, t3, t5, t6, maxiters=20, kmeans=True):
     print "STARTING EM. OR GRADIENT DESCENT. OR ICM. OR WHATEVER THIS IS :D "
 
     l = sum_loss(L, Y)
     print "initial loss: " + str(l)
+    fav_label = np.where(Y[88, :] == 1)[0][0]
+    print "INIT loss for my favorite detection: " + str(L[88, fav_label])
 
     for iter in range(maxiters):
 
@@ -221,8 +221,14 @@ def EM(Y, X, C, shot, mu, scene_cast, L, outdir, name_dict, maxiters=20, kmeans=
         l = sum_loss(L, Y)
         print l
 
+        fav_label = np.where(Y[88, :] == 1)[0][0]
+        print "loss for my favorite detection: " + str(L[88, fav_label])
+
         save_model(C, mu, Y, iter, outdir, name_dict, kmeans)
         label_hist(Y, 2)
+
+        # evaluate using ground truths:
+        evaluate(X, Y, t3, t5, t6)
 
     return Y
 
@@ -253,6 +259,23 @@ def dist(A, B):
     return np.sum((A - B)**2)
 
 
+def evaluate(X, Y, t3, t5, t6):
+
+    num_dets_3 = X[X[:,0] == 3, :].shape[0]
+    num_dets_5 = X[X[:,0] == 5, :].shape[0]
+    num_dets_6 = X[X[:,0] == 6, :].shape[0]
+
+    label_3 = np.where(Y[X[:, 0] == 3, :] == 1)[1]
+    label_5 = np.where(Y[X[:, 0] == 5, :] == 1)[1]
+    label_6 = np.where(Y[X[:, 0] == 6, :] == 1)[1]
+
+    acc_3 = np.where(label_3 == t3)[0].shape[0]
+    acc_5 = np.where(label_5 == t5)[0].shape[0]
+    acc_6 = np.where(label_6 == t6)[0].shape[0]
+
+    acc = (acc_3 + acc_5 + acc_6) / float(num_dets_3 + num_dets_5 + num_dets_6)
+    print acc
+
 def label_hist(Y, s):
 
     dets_num = Y.shape[0]
@@ -282,16 +305,17 @@ if __name__ == '__main__':
     # prepend = '/u/eleni/412-project/the_mentalist_1x19/'
 
     dir_cast = prepend+'cast/'
-    dir_feature_matrix = prepend+'feature_matrix_files/more_boxes/'
+    dir_feature_matrix = prepend+'feature_matrix_files/'
     frames_dir = prepend+'scenes/scene_frames/'
     dir_shot_change = prepend+'shot_changes/'
+    targets_dir = prepend+'labels/'
 
     out_path = '/Users/elenitriantafillou/model_output/'
     # out_path = '/u/eleni/model_output/'
 
     scene_cast, cast_counts, name_dict, S = load_data(dir_cast)
-
-    S = 20
+    t3, t5, t6 = load_labels(targets_dir)
+    S = 40
 
     X = construct_feature_matrix(dir_feature_matrix)
     max_frames = np.max(X[:, 1]) + 1
@@ -311,7 +335,7 @@ if __name__ == '__main__':
     else:
         mu, Y, C, L = initialize(N, S, cast_counts, scene_cast, X, shot_change)
 
-    Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict, kmeans=use_kmeans)
+    Y = EM(Y, X, C, shot_change, mu, scene_cast, L, out_path, name_dict, t3, t5, t6, kmeans=use_kmeans)
 
     for s in range(2, S):
         if use_kmeans:
