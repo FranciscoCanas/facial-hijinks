@@ -1,6 +1,8 @@
 from sklearn.cluster import KMeans
 from load_data import *
 from random import randint
+from sklearn import metrics
+
 import time
 
 np.seterr(all='warn')
@@ -182,11 +184,11 @@ def M_step(Y, X, mu, C, shot):
         mu[k, :] = np.sum(Y[:, k].reshape(-1, 1) * X[:, 23:], axis=0) / (np.sum(Y[:, k]) + eps)
 
     for s in range(S):
-        C[0, s] = np.sum(Y[X[:, 0] == s, 0])
+        C[0, s] = -np.sum(Y[X[:, 0] == s, 0])
 
     C2, C3 = M_step_C2_C3(Y, X, shot)
     C[1, :] = C2
-    C[2, :] = C3
+    C[2, :] = -C3
 
     print "C1 " + str(C[0,:]) + '\n'
     print "C2 " + str(C[1,:]) + '\n'
@@ -208,12 +210,16 @@ def EM(Y_tr, X_tr, X_test, C, shot, mu, scene_cast, L_tr, outdir, name_dict, t3,
     accs_tr[0] = acc_tr #kmeans acc
     print "kmeans acc " + str(acc_tr)
 
-
     accs_test = np.zeros((maxiters+1))
-    Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
-    acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
-    accs_test[0] = acc_test
+    if not (test_scenes == []):
+        Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+        acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+        accs_test[0] = acc_test
 
+    sil_score = np.zeros((maxiters+1))
+    labels_tr = np.where(Y_tr == 1)[1]
+    score = metrics.silhouette_score(X_tr, labels_tr)
+    sil_score[0] = score
 
     l = sum_loss(L_tr, Y_tr)
     print "initial loss: " + str(l)
@@ -230,18 +236,23 @@ def EM(Y_tr, X_tr, X_test, C, shot, mu, scene_cast, L_tr, outdir, name_dict, t3,
 
         save_model(C, mu, Y_tr, iter, outdir, name_dict, kmeans)
 
-        # evaluate validation set using ground truths:
+        # evaluate train set using ground truths:
         acc_tr = evaluate_train(X_tr, Y_tr, t3, t5, t6, test_scenes)
         accs_tr[iter+1] = acc_tr
         print accs_tr
 
         # evaluate test using ground truths:
-        Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
-        acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
-        accs_test[iter+1] = acc_test
-        print accs_test
+        if not (test_scenes == []):
+            Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+            acc_test = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+            accs_test[iter+1] = acc_test
+            print accs_test
 
-    return Y_tr, accs_tr, accs_test
+        labels_tr = np.where(Y_tr == 1)[1]
+        sil_score[iter+1] = metrics.silhouette_score(X_tr, labels_tr)
+        print sil_score
+
+    return Y_tr, accs_tr, accs_test, sil_score
 
 def save_model(C, mu, Y, iter, out_dir, name_dict, kmeans):
 
@@ -270,8 +281,6 @@ def dist(A, B):
 
 def evaluate_train(X, Y, t3, t5, t6, test_scenes):
 
-    test = test_scenes[0]
-
     num_dets_3 = X[X[:,0] == 3, :].shape[0]
     num_dets_5 = X[X[:,0] == 5, :].shape[0]
     num_dets_6 = X[X[:,0] == 6, :].shape[0]
@@ -284,15 +293,18 @@ def evaluate_train(X, Y, t3, t5, t6, test_scenes):
     got_rights_5 = np.where(label_5 == t5)[0].shape[0]
     got_rights_6 = np.where(label_6 == t6)[0].shape[0]
 
-    if test == 3:
+    if 3 in test_scenes:
         num_dets = num_dets_5 + num_dets_6
         got_rights = got_rights_5 + got_rights_6
-    elif test == 5:
+    elif 5 in test_scenes:
         num_dets = num_dets_3 + num_dets_6
         got_rights = got_rights_3 + got_rights_6
-    elif test == 6:
+    elif 6 in test_scenes:
         num_dets = num_dets_5 + num_dets_3
         got_rights = got_rights_5 + got_rights_3
+    elif test_scenes == []:
+        num_dets = num_dets_5 + num_dets_3 + num_dets_6
+        got_rights = got_rights_5 + got_rights_3 + got_rights_6
 
     acc = got_rights / float(num_dets)
     return acc
@@ -308,7 +320,7 @@ def get_test_accuracy(Y_test, t3, t5, t6, test_scenes):
     else:
         t = t6
 
-    preds = np.where(Y_test[:,:] == 1)[1]
+    preds = np.where(Y_test == 1)[1]
     got_rights = np.where(preds == t)[0].shape[0]
 
     test_acc = got_rights / float(X_test.shape[0])
@@ -362,7 +374,7 @@ if __name__ == '__main__':
     t3, t5, t6 = load_labels(targets_dir)
     S = 40
 
-    test_scenes = [5]
+    test_scenes = []
     X_train, X_test = construct_feature_matrix_train_test(dir_feature_matrix, test_scenes)
 
     max_frames_tr = np.max(X_train[:, 1]) + 1
