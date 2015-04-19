@@ -377,8 +377,12 @@ if __name__ == '__main__':
     test_scenes = []
     X_train, X_test = construct_feature_matrix_train_test(dir_feature_matrix, test_scenes)
 
+
     max_frames_tr = np.max(X_train[:, 1]) + 1
-    max_frames_t = np.max(X_test[:, 1]) + 1
+    try:
+        max_frames_t = np.max(X_test[:, 1]) + 1
+    except:
+        max_frames_t = 0
     max_frames = max(max_frames_tr, max_frames_t)
 
     shot_change = construct_shot_change(dir_shot_change, S, max_frames)
@@ -413,9 +417,9 @@ if __name__ == '__main__':
 
 
     # test set
-    Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
-    test_acc = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
-    print "test acc for scene 5: " + str(test_acc)
+    # Y_test = predict(X_test, shot_change, mu, scene_cast, C, test_scenes)
+    # test_acc = get_test_accuracy(Y_test, t3, t5, t6, test_scenes)
+    # print "test acc for scene 5: " + str(test_acc)
 
     # for s in range(2, S):
     #     if use_kmeans:

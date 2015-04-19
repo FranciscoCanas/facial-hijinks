@@ -38,6 +38,8 @@ def construct_feature_matrix_train_test(in_dir, test_scenes):
             except:
                 X_train = M_train
 
+    if test_scenes == []:
+        X_test = 0
 
     return X_train, X_test
 
